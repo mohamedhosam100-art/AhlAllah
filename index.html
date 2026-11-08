@@ -1,0 +1,194 @@
+<html style="margin:0;padding:0;" dir="rtl">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function(){
+  var s = document.createElement('style');
+  s.textContent = `:root{
+    --bg:#f4f7fb;--card:#ffffff;--text:#0f172a;--muted:#64748b;
+    --accent:#1e40af;--accent-soft:rgba(30,64,175,.12);
+    --success:#059669;--danger:#dc2626;--warning:#d97706;
+    --border:rgba(15,23,42,.08)
+  }
+  *{font-family:"Cairo",sans-serif}
+  body{background:var(--bg);color:var(--text);margin:0}
+  .tab-btn.active{background:var(--accent);color:#fff}
+  .tab-btn{transition:all .2s ease}
+  .card{transition:transform .2s ease,box-shadow .2s ease}
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  .modal{display:none}.modal.show{display:flex}
+  input,select,textarea{font-family:"Cairo",sans-serif;outline:none}
+  input:focus,select:focus{border-color:var(--accent)}
+  .pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+  .alert-bar{animation:slideDown .4s ease}
+  @keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .nav-btn.active{color:var(--accent);background:var(--accent-soft)}
+  `;
+  document.head.appendChild(s);
+})();
+</script>
+<div style="background:var(--bg);min-height:100vh;box-sizing:border-box;">
+  <div class="max-w-xl mx-auto px-4 pb-32">
+
+    <!-- الهيدر + التنبيهات -->
+    <div class="pt-6 pb-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-extrabold" id="appTitle">نظام متابعة الطلاب</h1>
+            <p class="text-xs" style="color:var(--muted)">الإصدار الكامل · كل الميزات</p>
+          </div>
+        </div>
+        <button onclick="openModal('settingsModal')" class="p-2.5 rounded-xl" style="background:var(--card);border:1px solid var(--border)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div id="alertsBox"></div>
+    </div>
+
+    <!-- الإحصائيات -->
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <div class="card rounded-2xl p-4" style="background:var(--card);border:1px solid var(--border)">
+        <p class="text-xs mb-1" style="color:var(--muted)">إجمالي الطلاب</p>
+        <p class="text-2xl font-extrabold" id="statStudents">0</p>
+      </div>
+      <div class="card rounded-2xl p-4" style="background:var(--card);border:1px solid var(--border)">
+        <p class="text-xs mb-1" style="color:var(--muted)">نسبة الحضور</p>
+        <p class="text-2xl font-extrabold" id="statAttend" style="color:var(--success)">0%</p>
+      </div>
+      <div class="card rounded-2xl p-4" style="background:var(--card);border:1px solid var(--border)">
+        <p class="text-xs mb-1" style="color:var(--muted)">المحصل</p>
+        <p class="text-2xl font-extrabold" id="statPaid">0</p>
+      </div>
+      <div class="card rounded-2xl p-4" style="background:var(--card);border:1px solid var(--border)">
+        <p class="text-xs mb-1" style="color:var(--muted)">المتبقي</p>
+        <p class="text-2xl font-extrabold" id="statRemain" style="color:var(--danger)">0</p>
+      </div>
+    </div>
+
+    <!-- شريط البحث والفلترة -->
+    <div class="flex gap-2 mb-4">
+      <input id="searchBox" oninput="updateUI()" placeholder="🔍 بحث باسم الطالب / الهاتف" class="flex-1 p-3 rounded-xl border text-sm" style="border-color:var(--border);background:var(--card)">
+      <select id="filterClass" onchange="updateUI()" class="p-3 rounded-xl border text-sm" style="border-color:var(--border);background:var(--card)">
+        <option value="">كل الفصول</option>
+      </select>
+    </div>
+
+    <!-- التبويبات الرئيسية -->
+    <div class="flex gap-1.5 mb-5 p-1 rounded-2xl overflow-x-auto" style="background:var(--card);border:1px solid var(--border)">
+      <button class="tab-btn active flex-1 py-2.5 px-2 rounded-xl font-semibold text-xs whitespace-nowrap" data-tab="students">👥 الطلاب</button>
+      <button class="tab-btn flex-1 py-2.5 px-2 rounded-xl font-semibold text-xs whitespace-nowrap" data-tab="attendance" style="color:var(--muted)">📅 الحضور</button>
+      <button class="tab-btn flex-1 py-2.5 px-2 rounded-xl font-semibold text-xs whitespace-nowrap" data-tab="levels" style="color:var(--muted)">📝 المستوى</button>
+      <button class="tab-btn flex-1 py-2.5 px-2 rounded-xl font-semibold text-xs whitespace-nowrap" data-tab="payments" style="color:var(--muted)">💰 المدفوعات</button>
+      <button class="tab-btn flex-1 py-2.5 px-2 rounded-xl font-semibold text-xs whitespace-nowrap" data-tab="reports" style="color:var(--muted)">📊 التقارير</button>
+    </div>
+
+    <!-- الطلاب -->
+    <div id="tab-students" class="tab-content">
+      <button onclick="openModal('studentModal')" class="w-full py-3.5 rounded-2xl font-bold mb-4 text-white text-sm" style="background:var(--accent)">+ إضافة طالب جديد</button>
+      <div id="studentsList" class="space-y-3"></div>
+    </div>
+
+    <!-- الحضور -->
+    <div id="tab-attendance" class="tab-content hidden">
+      <div class="card rounded-2xl p-4 mb-4" style="background:var(--card);border:1px solid var(--border)">
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="text-xs font-semibold mb-1 block" style="color:var(--muted)">التاريخ</label><input type="date" id="attendanceDate" onchange="renderAttendance()" class="w-full p-2.5 rounded-xl border text-sm" style="border-color:var(--border)"></div>
+          <div><label class="text-xs font-semibold mb-1 block" style="color:var(--muted)">الصف</label><select id="attClass" onchange="renderAttendance()" class="w-full p-2.5 rounded-xl border text-sm" style="border-color:var(--border)"><option value="">الكل</option></select></div>
+        </div>
+      </div>
+      <button onclick="saveAttendance()" class="w-full py-3.5 rounded-2xl font-bold mb-4 text-white text-sm" style="background:var(--success)">✓ حفظ الحضور بالكامل</button>
+      <div id="attendanceList" class="space-y-2"></div>
+    </div>
+
+    <!-- المستوى -->
+    <div id="tab-levels" class="tab-content hidden">
+      <div id="levelsList" class="space-y-3"></div>
+    </div>
+
+    <!-- المدفوعات -->
+    <div id="tab-payments" class="tab-content hidden">
+      <div id="paymentsList" class="space-y-3"></div>
+    </div>
+
+    <!-- التقارير والتصدير -->
+    <div id="tab-reports" class="tab-content hidden">
+      <div class="card rounded-2xl p-5 mb-4" style="background:var(--card);border:1px solid var(--border)">
+        <h3 class="font-bold mb-3">📥 تصدير البيانات الكاملة</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="exportExcel()" class="py-3 rounded-xl font-semibold text-sm text-white" style="background:#107c41">📊 Excel</button>
+          <button onclick="exportPDF()" class="py-3 rounded-xl font-semibold text-sm text-white" style="background:#b91c1c">📄 PDF</button>
+        </div>
+      </div>
+      <div class="card rounded-2xl p-5 mb-4" style="background:var(--card);border:1px solid var(--border)">
+        <h3 class="font-bold mb-3">☁️ مزامنة ونسخ احتياطي (سحابي)</h3>
+        <p class="text-xs mb-3" style="color:var(--muted)">انسخ هذا الرمز لنقل كل البيانات لهاتف آخر أو احفظه نسخة احتياطية</p>
+        <textarea id="backupCode" readonly class="w-full p-3 rounded-xl border text-xs mb-2" style="border-color:var(--border);height:90px"></textarea>
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="copyBackup()" class="py-2.5 rounded-xl font-semibold text-xs" style="background:var(--accent-soft);color:var(--accent)">نسخ</button>
+          <button onclick="document.getElementById('restoreInput').click()" class="py-2.5 rounded-xl font-semibold text-xs" style="background:rgba(217,119,6,.12);color:var(--warning)">استعادة</button>
+          <input type="file" id="restoreInput" accept=".json" onchange="restoreFile(event)" class="hidden">
+          <button onclick="wipeAll()" class="py-2.5 rounded-xl font-semibold text-xs" style="background:rgba(220,38,38,.1);color:var(--danger)">مسح الكل</button>
+        </div>
+      </div>
+      <div id="monthlyReports"></div>
+    </div>
+
+    <!-- النوافذ المنبثقة -->
+    <!-- إضافة طالب -->
+    <div id="studentModal" class="modal fixed inset-0 items-end justify-center" style="background:rgba(0,0,0,.5);z-index:50">
+      <div class="w-full max-w-xl rounded-t-3xl p-6" style="background:var(--card)">
+        <h3 class="text-lg font-bold mb-4">إضافة طالب جديد</h3>
+        <div class="space-y-2.5">
+          <input id="stName" placeholder="* اسم الطالب كاملاً" class="w-full p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+          <div class="grid grid-cols-2 gap-2">
+            <select id="stClass" class="p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+              <option value="">اختر الصف</option>
+              <option>رياض أطفال</option><option>الصف الأول</option><option>الصف الثاني</option>
+              <option>الصف الثالث</option><option>الصف الرابع</option><option>الصف الخامس</option>
+              <option>الصف السادس</option><option>إعدادي أول</option><option>إعدادي ثاني</option>
+              <option>إعدادي ثالث</option><option>ثانوي عام</option><option>حلقة تحفيظ</option>
+            </select>
+            <input id="stFees" type="number" placeholder="* الرسوم الشهرية" class="p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+          </div>
+          <input id="stParent" placeholder="رقم هاتف ولي الأمر" class="w-full p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+          <input id="stJoin" type="date" class="w-full p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+          <button onclick="closeModal('studentModal')" class="py-3 rounded-xl font-semibold text-sm" style="border:1px solid var(--border);color:var(--muted)">إلغاء</button>
+          <button onclick="addStudent()" class="py-3 rounded-xl font-bold text-sm text-white" style="background:var(--accent)">حفظ الطالب</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- تقييم مستوى -->
+    <div id="markModal" class="modal fixed inset-0 items-end justify-center" style="background:rgba(0,0,0,.5);z-index:50">
+      <div class="w-full max-w-xl rounded-t-3xl p-6" style="background:var(--card)">
+        <h3 class="text-lg font-bold mb-4" id="markStudentName">إضافة تقييم</h3>
+        <input type="hidden" id="markStudentId">
+        <div class="space-y-2.5">
+          <input id="markSubject" placeholder="المادة / الجزء / الاختبار" class="w-full p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+          <div class="grid grid-cols-2 gap-2">
+            <input id="markValue" type="number" placeholder="الدرجة / التقدير" class="p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+            <input id="markMax" type="number" placeholder="من (الكلي)" value="100" class="p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+          </div>
+          <input id="markDate" type="date" class="w-full p-3 rounded-xl border text-sm" style="border-color:var(--border)">
+          <textarea id="markNote" placeholder="ملاحظات المعلم" rows="2" class="w-full p-3 rounded-xl border text-sm" style="border-color:var(--border)"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+          <button onclick="closeModal('markModal')" class="py-3 rounded-xl font-semibold text-sm" style="border:1px solid var(--border);color:var(--muted)">إلغاء</button>
+          <button onclick="addMark()" class="py-3 rounded-xl font-bold text-sm text-white" style="background:var(--accent)">حفظ التقييم</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- دفعة مالية -->
+    <div id="payModal" class="modal fixed inset-0 items-end justify-center" style="background:rgba(0,0,0,.5);z-index:50">
+      <div class="w-full max-w-xl rounded-t-3xl p-6" style="background:var(--card)">
+        <h3 class="text-lg font
